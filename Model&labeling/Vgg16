@@ -1,0 +1,166 @@
+import cv2
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings('ignore')
+from random import shuffle
+from tqdm import tqdm
+import tensorflow as tf
+import tflearn
+from tflearn.layers.conv import conv_2d, max_pool_2d
+from tflearn.layers.core import input_data, dropout, fully_connected
+from tflearn.layers.estimator import regression
+
+#labaling
+def my_label(image_name):
+    name = image_name.split('.')[-3]
+    if name == "Rayhan":
+        return np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    elif name == "Fahim":
+        return np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    elif name == "Muktadir":
+        return np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+    elif name == "Abdulla":
+        return np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+    elif name == "Shabib":
+        return np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+    elif name == "Shadman":
+        return np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
+    elif name == "Bulbul":
+        return np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
+    elif name == "Mehidi":
+        return np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+    elif name == "Rafi":
+        return np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+    elif name == "Shakhawat":
+        return np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+    elif name == "Shakil":
+        return np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+
+#create Data
+def my_data():
+    data = []
+    for img in tqdm(os.listdir("C://Users//asus//Desktop//TrainAndTest")):
+        path=os.path.join("C://Users//asus//Desktop//TrainAndTest",img)
+        img_data = cv2.imread(path,cv2.IMREAD_UNCHANGED)
+        img_data=cv2.resize(img_data,(224,224))
+        data.append([np.array(img_data), my_label(img)])
+    shuffle(data)
+    return data
+data=my_data()
+
+
+train = data[:6600]
+
+test = data[6600:]
+
+X_train = np.array([i[0] for i in train]).reshape(-1,224,224,3)
+print(X_train.shape)
+y_train = [i[1] for i in train]
+X_test = np.array([i[0] for i in test]).reshape(-1,224,224,3)
+print(X_test.shape)
+y_test = [i[1] for i in test]
+
+#Creating the model_vgg16
+tf.compat.v1.reset_default_graph()
+convnet = input_data(shape=[224,224,3])
+
+#64 filter
+convnet = conv_2d(convnet, 64, 3,padding='same', activation='relu', scope='conv1_1')
+convnet = conv_2d(convnet, 64, 3, padding='same',activation='relu', scope='conv1_2')
+convnet = max_pool_2d(convnet, 2,strides=2, name='maxpool1')
+
+
+convnet = conv_2d(convnet, 128, 3,padding='same', activation='relu', scope='conv2_1')
+convnet = conv_2d(convnet, 128, 3,padding='same' ,activation='relu', scope='conv2_2')
+convnet = max_pool_2d(convnet, 2,padding='same', strides=2, name='maxpool2')
+
+convnet = conv_2d(convnet, 256, 3,padding='same', activation='relu', scope='conv3_1')
+convnet = conv_2d(convnet, 256, 3,padding='same', activation='relu', scope='conv3_2')
+convnet = conv_2d(convnet, 256, 3,padding='same', activation='relu', scope='conv3_3')
+convnet = max_pool_2d(convnet, 2, strides=2, name='maxpool3')
+
+convnet = conv_2d(convnet, 512, 3,padding='same', activation='relu', scope='conv4_1')
+convnet = conv_2d(convnet, 512, 3,padding='same', activation='relu', scope='conv4_2')
+convnet = conv_2d(convnet, 512, 3,padding='same', activation='relu', scope='conv4_3')
+convnet = max_pool_2d(convnet, 2, strides=2, name='maxpool4')
+
+convnet = conv_2d(convnet, 512, 3,padding='same', activation='relu', scope='conv5_1')
+convnet = conv_2d(convnet, 512, 3,padding='same', activation='relu', scope='conv5_2')
+convnet = conv_2d(convnet, 512, 3,padding='same', activation='relu', scope='conv5_3')
+convnet = max_pool_2d(convnet, 2, strides=2, name='maxpool5')
+
+convnet = fully_connected(convnet, 4096, activation='relu', scope='fc6')
+convnet = dropout(convnet, .80, name='dropout1')
+convnet = fully_connected(convnet, 4096, activation='relu', scope='fc7')
+convnet = dropout(convnet, 0.80, name='dropout2')
+
+convnet = fully_connected(convnet, 11, activation='softmax', scope='fc8')
+
+convnet = regression(convnet, optimizer='adam', learning_rate = 0.00001, loss='categorical_crossentropy')
+model_vgg16 = tflearn.DNN(convnet, tensorboard_verbose=3)
+#model_vgg16.fit(X_train, y_train, n_epoch=5,batch_size=64, validation_set=(X_test, y_test), show_metric = True, run_id="FRS_VGG16" )
+#model_vgg16.save('C://Users//asus//Desktop//train//VGG16//');
+
+model_vgg16.load('C://Users//asus//Desktop//train//VGG16//');
+
+def data_for_visualization():
+    Vdata = []
+    for img in tqdm(os.listdir("C://Users//asus//Desktop//Finl_V")):
+        path = os.path.join("C://Users//asus//Desktop//Finl_V", img)
+        img_num = img.split('.')[0]
+        img_data = cv2.imread(path,cv2.IMREAD_UNCHANGED)
+        img_data = cv2.resize(img_data, (224, 224))
+        Vdata.append([np.array(img_data), img_num])
+    shuffle(Vdata)
+    return Vdata
+
+Vdata = data_for_visualization()
+
+import matplotlib.pyplot as plt  # pip install matplotlib
+
+fig = plt.figure(figsize=(35, 35))
+for num, data in enumerate(Vdata[:35]):
+    img_data = data[0]
+    y = fig.add_subplot(5, 7, num + 1)
+    image = img_data
+    #data = img_data.reshape(224, 224, 3)
+    data =img_data
+    model_out = model_vgg16.predict([data])[0]
+
+    if np.argmax(model_out) == 0:
+        my_label = 'Rayhan'
+    elif np.argmax(model_out) == 1:
+        my_label = 'Fahim'
+    elif np.argmax(model_out) == 2:
+        my_label = 'Muktadir'
+    elif np.argmax(model_out) == 3:
+        my_label = 'Abdulla'
+    elif np.argmax(model_out) == 4:
+        my_label = 'Shabib'
+    elif np.argmax(model_out) == 5:
+        my_label = 'Shadman'
+    elif np.argmax(model_out) == 6:
+        my_label = 'Bulbul'
+    elif np.argmax(model_out) == 7:
+        my_label = 'Mehidi'
+    elif np.argmax(model_out) == 8:
+        my_label = 'Rafi'
+    elif np.argmax(model_out) == 9:
+        my_label = 'Shakhawat'
+    elif np.argmax(model_out) == 10:
+        my_label = 'Shakil'
+    plt.axis('off')
+    plt.imshow(cv2.cvtColor(image,cv2.COLOR_BGR2RGB))
+    #y.imshow(image)
+    plt.title(my_label)
+
+    y.axes.get_xaxis().set_visible(False)
+    y.axes.get_yaxis().set_visible(False)
+plt.show()
+
+
+
+
+
