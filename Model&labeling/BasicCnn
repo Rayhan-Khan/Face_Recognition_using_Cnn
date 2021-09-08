@@ -1,0 +1,95 @@
+import cv2
+import numpy as np
+import os
+# import warnings
+# warnings.filterwarnings('ignore')
+from random import shuffle
+from tqdm import tqdm
+import tensorflow as tf
+import tflearn
+from tflearn.layers.conv import conv_2d, max_pool_2d
+from tflearn.layers.core import input_data, dropout, fully_connected
+from tflearn.layers.estimator import regression
+
+
+# class MonitorCallback(tflearn.callbacks.Callback):
+#    def __init__(self):
+#        self.train_losses = []
+#    def on_batch_end(self, training_state, snapshot=False):
+#    	print("The training loss is: ", training_state.global_loss)
+#   	self.train_losses.append(training_state.global_loss)
+
+
+# Callback = MonitorCallback()
+# labaling
+def my_label(image_name):
+    name = image_name.split('.')[-3]
+    if name == "Fahim":
+        return np.array([1, 0])
+    elif name == "Abdulla":
+        return np.array([0, 1])
+
+# create Data
+def my_data():
+    data = []
+    for img in tqdm(os.listdir("C://Users//Rayhan//Desktop//Newfolder")):
+        path = os.path.join("C://Users//Rayhan//Desktop//Newfolder", img)
+        img_data = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        data.append([np.array(img_data), my_label(img)])
+    shuffle(data)
+    return data
+
+
+data = my_data()
+
+train = data[:14]
+
+test = data[14:]
+
+X_train = np.array([i[0] for i in train]).reshape(-1, 200, 200, 3)
+print(X_train.shape)
+y_train = [i[1] for i in train]
+X_test = np.array([i[0] for i in test]).reshape(-1, 200, 200, 3)
+print(X_test.shape)
+y_test = [i[1] for i in test]
+
+# Creating the model
+# tf.reset_default_graph()
+tf.compat.v1.reset_default_graph()
+convnet = input_data(shape=[200, 200, 3])
+convnet = conv_2d(convnet, 32, 3, activation='relu')
+convnet = conv_2d(convnet, 32, 5, activation='relu')
+convnet = max_pool_2d(convnet, 5)
+convnet= conv_2d(convnet, 64, 3, activation='relu')
+convnet = conv_2d(convnet, 64, 5, activation='relu')
+convnet = max_pool_2d(convnet, 5)
+convnet = conv_2d(convnet, 128, 5, activation='relu')
+convnet = max_pool_2d(convnet, 5)
+convnet = conv_2d(convnet, 64, 5, activation='relu')
+convnet = max_pool_2d(convnet, 5)
+convnet = conv_2d(convnet, 32, 5, activation='relu')
+convnet = max_pool_2d(convnet, 5)
+
+
+
+convnet = fully_connected(convnet, 1024, activation='relu')
+convnet = dropout(convnet, 0.8)
+convnet = fully_connected(convnet, 1024, activation='relu')
+convnet = dropout(convnet, 0.8)
+convnet = fully_connected(convnet, 2, activation='softmax')
+convnet = regression(convnet, optimizer='adam', batch_size=64, learning_rate=0.001, loss='categorical_crossentropy')
+model = tflearn.DNN(convnet, tensorboard_verbose=3)
+
+
+
+
+model.fit(X_train, y_train, n_epoch=1, validation_set=(X_test, y_test),
+          show_metric=True,
+          run_id="FRS_CNN",
+          snapshot_epoch=True,)
+
+
+
+
+
+
