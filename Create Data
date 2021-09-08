@@ -1,0 +1,37 @@
+import cv2
+def generate_dataset():
+    face_classifier = cv2.CascadeClassifier("C://Users//asus//Desktop//haarcascade_frontalface_default.xml")
+
+    def face_cropped(img):
+        color = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        faces = face_classifier.detectMultiScale(color, 1.3, 5)
+
+        if faces is ():
+            return None
+        for (x, y, w, h) in faces:
+            crop_face = img[y:y + h, x:x + h]
+        return crop_face
+
+    video = cv2.VideoCapture(0)
+    adress="https://192.168.0.103:8080/video"
+    video.open(adress)
+    img_id = 1
+    while True:
+        ret, frame = video.read()
+        if face_cropped(frame) is not None:
+            img_id += 1
+            face = cv2.resize(face_cropped(frame), (200, 200))
+            #face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+            file_name_path = "C://Users//asus//Desktop//Rayhan//" + "Rayhan." + str(img_id) + ".jpg"
+            cv2.imwrite(file_name_path, face)
+            cv2.putText(face, str(img_id), (200, 200), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+            cv2.imshow("croped_face", face)
+
+            if cv2.waitKey(1) == 13 or int(img_id) == 1200:
+                break
+    video.release()
+    cv2.destroyAllWindows()
+    print("Collect Data set Sample compleate...")
+
+
+generate_dataset()
